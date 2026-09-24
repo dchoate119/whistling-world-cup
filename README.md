@@ -24,6 +24,7 @@ pip install -r requirements.txt
 
 ## Running (current)
 ```
+python src/main.py             # whistle to drive: pitch steers, silence stops
 python src/spectrogram.py      # live view of your whistle pitch, for tuning
 ```
 
@@ -34,7 +35,7 @@ config.py        # broker, topic, card color/serial, audio settings
 audio.py         # Microphone (mic stream) + PitchDetector (loudest whistle frequency)
 robot.py         # Robot: DoubleMotor drive/steer (ColorSensor + songs planned)
 mqtt_client.py   # GameMQTT: connect, subscribe, publish on ME193/Rogers
-main.py          # planned: whistle → command, role selection, game loop
+main.py          # whistle → drive/steer (role selection + game loop planned)
 spectrogram.py   # tuning tool: live whistle spectrogram
 ```
 
@@ -48,13 +49,13 @@ spectrogram.py   # tuning tool: live whistle spectrogram
 
 ### Audio
 - [x] Pitch detection
-- [ ] Define whistle control scheme (speed, steering, stop)
+- [x] First control scheme: whistle = forward + pitch steers, silence = stop
+- [ ] Test and tune on the floor (speed, steering, stop delay)
 - [ ] Define special goal command
-- [ ] Map pitch to motor commands
+- [x] Map pitch to motor commands
 
 ### Code structure
-- [x] `config.py`, `audio.py`, `robot.py` (motor)
-- [ ] `main.py`
+- [x] `config.py`, `audio.py`, `robot.py` (motor), `main.py` (whistle driving)
 
 ### MQTT
 - [ ] Subscribe to `ME193/Rogers`, wait for `start`
