@@ -25,6 +25,7 @@ pip install -r requirements.txt
 ## Running (current)
 ```
 python src/main.py             # whistle to drive: pitch steers, silence stops
+python src/main.py --plot      # same, plus the live spectrogram for troubleshooting
 python src/spectrogram.py      # live view of your whistle pitch, for tuning
 ```
 
