@@ -22,12 +22,12 @@ from config import CHUNK, F_MAX, F_MIN, RATE, WHISTLE_THRESHOLD_DB
 HISTORY_SECONDS = 5  # width of the scrolling spectrogram
 
 
-def main():
+def main(on_frame=None):
     parser = argparse.ArgumentParser(description="Live whistle spectrogram.")
     parser.add_argument("--threshold", type=float, default=WHISTLE_THRESHOLD_DB,
                         help=f"dB the peak must be above the band median to count as a whistle "
                              f"(default {WHISTLE_THRESHOLD_DB})")
-    args = parser.parse_args()
+    args = parser.parse_known_args()[0]  # ignore main.py's --plot
 
     detector = PitchDetector(args.threshold)
     n_frames = int(HISTORY_SECONDS * RATE / CHUNK)
@@ -51,6 +51,8 @@ def main():
         peak_freq = None
         for samples in mic.read_available():
             db, peak_freq = detector.analyze(samples)
+            if on_frame:
+                on_frame(peak_freq)
             spec = np.roll(spec, -1, axis=1)
             # Relative to the median, like the detector: the noise floor sits near 0 whatever the mic gain
             spec[:, -1] = db - np.median(db)
