@@ -67,14 +67,9 @@ import time
 import legoeducation as le
 import paho.mqtt.client as mqtt
 
-from mqtt_client import BROKER_HOST, BROKER_PORT
+from config import BROKER_HOST, BROKER_PORT, CARD_COLOR, CARD_SERIAL, ROBOT_TOPIC
 
-DEFAULT_TOPIC = "Dan_Codrin_Robot"
 UPDATE_HZ = 20  # how often the motor output is refreshed
-
-# Connection Card on our Double Motor
-DEFAULT_CARD_COLOR = "yellow"
-DEFAULT_CARD_SERIAL = "0994"  # string: keeps the leading zero
 
 
 CARD_COLORS = sorted(
@@ -199,14 +194,14 @@ def main():
     parser = argparse.ArgumentParser(description="Drive a LEGO Double Motor from MQTT drive/steer commands.")
     parser.add_argument("--host", default=BROKER_HOST, help=f"MQTT broker (default {BROKER_HOST})")
     parser.add_argument("--port", type=int, default=BROKER_PORT, help=f"MQTT port (default {BROKER_PORT})")
-    parser.add_argument("--topic", default=DEFAULT_TOPIC, help=f"base topic (default {DEFAULT_TOPIC})")
+    parser.add_argument("--topic", default=ROBOT_TOPIC, help=f"base topic (default {ROBOT_TOPIC})")
     parser.add_argument("--max-speed", type=int, default=100, help="motor speed %% at drive=1 (1-100, default 100)")
     parser.add_argument("--timeout", type=float, default=0,
                         help="stop the motors if no command arrives for this many seconds (default 0 = never)")
-    parser.add_argument("--card-color", default=DEFAULT_CARD_COLOR, choices=CARD_COLORS,
-                        help=f"Connection Card color (default {DEFAULT_CARD_COLOR})")
-    parser.add_argument("--card-serial", default=DEFAULT_CARD_SERIAL,
-                        help=f"Connection Card number (default {DEFAULT_CARD_SERIAL})")
+    parser.add_argument("--card-color", default=CARD_COLOR, choices=CARD_COLORS,
+                        help=f"Connection Card color (default {CARD_COLOR})")
+    parser.add_argument("--card-serial", default=CARD_SERIAL,
+                        help=f"Connection Card number (default {CARD_SERIAL})")
     args = parser.parse_args()
     if not 1 <= args.max_speed <= 100:
         parser.error("--max-speed must be between 1 and 100")

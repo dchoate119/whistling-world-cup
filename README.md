@@ -12,31 +12,56 @@ Whistle pitch drives a LEGO Education robot. Robots play as **ball** or **goalie
 - `legoeducation` (BLE): `DoubleMotor`, `ColorSensor`
 - `pyaudio` + `numpy`: audio capture and pitch detection
 - `paho-mqtt`: game messages
+- `matplotlib`: live spectrogram (debug)
 - Conda env: `lego` OR virtual env
 
-## File structure
+## Setup
 ```
-config.py        # broker, topic, messages, thresholds, device names
-audio.py         # mic stream + pitch detection
-controls.py      # pitch → command (speed, steer, stop, goal)
-robot.py         # DoubleMotor + ColorSensor (drive, proximity)
-mqtt_client.py   # connect, subscribe, publish
-songs.py         # death / success beep sequences
-main.py          # role selection + game loop
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Running (current)
+```
+python src/motor_server.py     # laptop with Bluetooth to the robot
+python src/whistle_steer.py    # laptop with the mic: whistle 1500–2500 Hz to steer
+mosquitto_pub -h test.mosquitto.org -t Dan_Codrin_Robot/drive -m 0.4   # drive is still manual
+```
+The two scripts only talk over MQTT, so they can run on the same laptop or different ones.
+
+## File structure
+All code is in `src/`. Files marked *planned* don't exist yet.
+```
+config.py        # broker, topics, card color/serial, audio settings
+audio.py         # Microphone (mic stream) + PitchDetector (loudest whistle frequency)
+controls.py      # planned: pitch → command (speed, steer, stop, goal)
+robot.py         # planned: DoubleMotor + ColorSensor (drive, proximity)
+mqtt_client.py   # GameMQTT: connect, subscribe, publish on ME193/Rogers
+songs.py         # planned: death / success beep sequences
+main.py          # planned: role selection + game loop
+
+motor_server.py  # testing tool: MQTT drive/steer → DoubleMotor
+whistle_steer.py # testing tool: whistle pitch → MQTT steer, with live spectrogram
 ```
 
 ## Checklist
 
 ### Hardware
-- [ ] Connect to `DoubleMotor` and `ColorSensor`
+- [x] Connect to `DoubleMotor`
+- [ ] Connect to `ColorSensor`
 - [ ] Mount color sensor open and facing forward
 - [ ] Calibrate `reflection` threshold for goalie proximity
 
 ### Audio
-- [ ] Pitch detection
+- [x] Pitch detection
 - [ ] Define whistle control scheme (speed, steering, stop)
 - [ ] Define special goal command
-- [ ] Map pitch to motor commands
+- [ ] Map pitch to motor commands (steering done, speed/stop not yet)
+
+### Code structure
+- [x] `config.py`, `audio.py`
+- [ ] `controls.py`, `robot.py`, `songs.py`, `main.py`
 
 ### MQTT
 - [ ] Subscribe to `ME193/Rogers`, wait for `start`

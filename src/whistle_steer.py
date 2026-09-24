@@ -29,16 +29,13 @@ import argparse
 import matplotlib.pyplot as plt
 import numpy as np
 import paho.mqtt.client as mqtt
-import pyaudio
 from matplotlib.animation import FuncAnimation
 
-from motor_server import DEFAULT_TOPIC
-from mqtt_client import BROKER_HOST, BROKER_PORT
+from audio import Microphone, PitchDetector
+from config import (BROKER_HOST, BROKER_PORT, CHUNK, F_MAX, F_MIN, RATE, ROBOT_TOPIC,
+                    WHISTLE_THRESHOLD_DB)
 
-RATE = 44100
-CHUNK = 2048          # samples per frame: ~46 ms, ~21.5 Hz per FFT bin
 HISTORY_SECONDS = 5   # width of the scrolling spectrogram
-F_MIN, F_MAX = 1500, 2500
 F_CENTER = (F_MIN + F_MAX) / 2
 F_HALF_RANGE = (F_MAX - F_MIN) / 2
 
@@ -51,16 +48,11 @@ def freq_to_steer(freq):
 class WhistleSteer:
     def __init__(self, host, port, topic, threshold):
         self.topic = f"{topic.rstrip('/')}/steer"
-        self.threshold = threshold
         self.last_sent = None
-
-        freqs = np.fft.rfftfreq(CHUNK, 1 / RATE)
-        self.band = (freqs >= F_MIN) & (freqs <= F_MAX)
-        self.band_freqs = freqs[self.band]
-        self.window = np.hanning(CHUNK)
+        self.detector = PitchDetector(threshold)
 
         n_frames = int(HISTORY_SECONDS * RATE / CHUNK)
-        self.spec = np.full((len(self.band_freqs), n_frames), -100.0)  # dB, newest column on the right
+        self.spec = np.full((len(self.detector.band_freqs), n_frames), -100.0)  # dB, newest column on the right
         self.peaks = np.full(n_frames, np.nan)  # peak frequency per frame, NaN = no whistle
 
         self.client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
@@ -68,23 +60,16 @@ class WhistleSteer:
         self.client.loop_start()
         print(f"[mqtt] publishing steering to {self.topic} on {host}:{port}")
 
-        self.audio = pyaudio.PyAudio()
-        self.stream = self.audio.open(format=pyaudio.paInt16, channels=1, rate=RATE,
-                                      input=True, frames_per_buffer=CHUNK)
+        self.mic = Microphone()
 
     def process_frame(self, samples):
-        """FFT one frame, update the history, and return the peak frequency (or None)."""
-        spectrum = np.abs(np.fft.rfft(samples * self.window))[self.band]
-        db = 20 * np.log10(spectrum + 1e-9)
-
-        peak_idx = int(np.argmax(db))
-        is_whistle = db[peak_idx] - np.median(db) >= self.threshold
-        peak_freq = float(self.band_freqs[peak_idx]) if is_whistle else None
+        """Analyze one frame, update the history, and return the peak frequency (or None)."""
+        db, peak_freq = self.detector.analyze(samples)
 
         self.spec = np.roll(self.spec, -1, axis=1)
         self.spec[:, -1] = db
         self.peaks = np.roll(self.peaks, -1)
-        self.peaks[-1] = peak_freq if is_whistle else np.nan
+        self.peaks[-1] = peak_freq if peak_freq is not None else np.nan
         return peak_freq
 
     def send_steer(self, peak_freq):
@@ -115,10 +100,7 @@ class WhistleSteer:
         def update(_):
             # Drain every frame that arrived since the last redraw so we never fall behind
             peak_freq = None
-            available = max(self.stream.get_read_available() // CHUNK, 1)
-            for _ in range(available):
-                raw = self.stream.read(CHUNK, exception_on_overflow=False)
-                samples = np.frombuffer(raw, dtype=np.int16).astype(np.float32)
+            for samples in self.mic.read_available():
                 peak_freq = self.process_frame(samples)
 
             steer = self.send_steer(peak_freq)
@@ -139,9 +121,7 @@ class WhistleSteer:
         self.client.publish(self.topic, "0.0", qos=1).wait_for_publish(timeout=2)
         self.client.disconnect()
         self.client.loop_stop()
-        self.stream.stop_stream()
-        self.stream.close()
-        self.audio.terminate()
+        self.mic.close()
 
 
 def freq_to_steer_unclamped(freq):
@@ -156,9 +136,10 @@ def main():
     parser = argparse.ArgumentParser(description="Steer the robot by whistling between 1500 and 2500 Hz.")
     parser.add_argument("--host", default=BROKER_HOST, help=f"MQTT broker (default {BROKER_HOST})")
     parser.add_argument("--port", type=int, default=BROKER_PORT, help=f"MQTT port (default {BROKER_PORT})")
-    parser.add_argument("--topic", default=DEFAULT_TOPIC, help=f"motor server base topic (default {DEFAULT_TOPIC})")
-    parser.add_argument("--threshold", type=float, default=15,
-                        help="dB the peak must be above the band median to count as a whistle (default 15)")
+    parser.add_argument("--topic", default=ROBOT_TOPIC, help=f"motor server base topic (default {ROBOT_TOPIC})")
+    parser.add_argument("--threshold", type=float, default=WHISTLE_THRESHOLD_DB,
+                        help=f"dB the peak must be above the band median to count as a whistle "
+                             f"(default {WHISTLE_THRESHOLD_DB})")
     args = parser.parse_args()
 
     app = WhistleSteer(args.host, args.port, args.topic, args.threshold)

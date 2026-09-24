@@ -5,14 +5,11 @@ import uuid
 
 import paho.mqtt.client as mqtt
 
-# TODO: move to config.py once broker is confirmed with instructor
-BROKER_HOST = "test.mosquitto.org"
-BROKER_PORT = 1883
-TOPIC = "ME193/Rogers"
+from config import BROKER_HOST, BROKER_PORT, GAME_TOPIC
 
 
 class GameMQTT:
-    def __init__(self, host=BROKER_HOST, port=BROKER_PORT, topic=TOPIC, on_message=None):
+    def __init__(self, host=BROKER_HOST, port=BROKER_PORT, topic=GAME_TOPIC, on_message=None):
         self.host = host
         self.port = port
         self.topic = topic
