@@ -12,31 +12,50 @@ Whistle pitch drives a LEGO Education robot. Robots play as **ball** or **goalie
 - `legoeducation` (BLE): `DoubleMotor`, `ColorSensor`
 - `pyaudio` + `numpy`: audio capture and pitch detection
 - `paho-mqtt`: game messages
+- `matplotlib`: live spectrogram (debug)
 - Conda env: `lego` OR virtual env
 
-## File structure
+## Setup
 ```
-config.py        # broker, topic, messages, thresholds, device names
-audio.py         # mic stream + pitch detection
-controls.py      # pitch → command (speed, steer, stop, goal)
-robot.py         # DoubleMotor + ColorSensor (drive, proximity)
-mqtt_client.py   # connect, subscribe, publish
-songs.py         # death / success beep sequences
-main.py          # role selection + game loop
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+## Running (current)
+```
+python src/main.py             # whistle to drive: pitch steers, silence stops
+python src/spectrogram.py      # live view of your whistle pitch, for tuning
+```
+
+## File structure
+All code is in `src/`. Files marked *planned* don't exist yet.
+```
+config.py        # broker, topic, card color/serial, audio settings
+audio.py         # Microphone (mic stream) + PitchDetector (loudest whistle frequency)
+robot.py         # Robot: DoubleMotor drive/steer (ColorSensor + songs planned)
+mqtt_client.py   # GameMQTT: connect, subscribe, publish on ME193/Rogers
+main.py          # whistle → drive/steer (role selection + game loop planned)
+spectrogram.py   # tuning tool: live whistle spectrogram
 ```
 
 ## Checklist
 
 ### Hardware
-- [ ] Connect to `DoubleMotor` and `ColorSensor`
+- [x] Connect to `DoubleMotor`
+- [ ] Connect to `ColorSensor`
 - [ ] Mount color sensor open and facing forward
 - [ ] Calibrate `reflection` threshold for goalie proximity
 
 ### Audio
-- [ ] Pitch detection
-- [ ] Define whistle control scheme (speed, steering, stop)
+- [x] Pitch detection
+- [x] First control scheme: whistle = forward + pitch steers, silence = stop
+- [ ] Test and tune on the floor (speed, steering, stop delay)
 - [ ] Define special goal command
-- [ ] Map pitch to motor commands
+- [x] Map pitch to motor commands
+
+### Code structure
+- [x] `config.py`, `audio.py`, `robot.py` (motor), `main.py` (whistle driving)
 
 ### MQTT
 - [ ] Subscribe to `ME193/Rogers`, wait for `start`
