@@ -6,8 +6,7 @@ BROKER_HOST = "test.mosquitto.org"
 BROKER_PORT = 1883
 
 # Topics
-GAME_TOPIC = "ME193/Rogers"      # game messages: start / FAILED / GOAL
-ROBOT_TOPIC = "Dan_Codrin_Robot"  # motor server base topic: <base>/drive, /steer, /stop
+GAME_TOPIC = "ME193/Rogers"  # game messages: start / FAILED / GOAL
 
 # Connection Card on our Double Motor
 CARD_COLOR = "yellow"
