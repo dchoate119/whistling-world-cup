@@ -16,7 +16,7 @@ import argparse
 import time
 
 from audio import Microphone, PitchDetector
-from config import F_MAX, F_MIN, ROBOT_TOPIC, WHISTLE_THRESHOLD_DB
+from config import F_MAX, F_MIN, MIN_LEVEL_DB, ROBOT_TOPIC, WHISTLE_THRESHOLD_DB
 from mqtt_client import GameMQTT
 from robot import Robot
 
@@ -44,6 +44,8 @@ def main():
     parser.add_argument("--threshold", type=float, default=WHISTLE_THRESHOLD_DB,
                         help=f"dB the peak must be above the band median to count as a whistle "
                              f"(default {WHISTLE_THRESHOLD_DB})")
+    parser.add_argument("--min-level", type=float, default=MIN_LEVEL_DB,
+                        help=f"absolute dB the peak must reach (default {MIN_LEVEL_DB}, 0 = off)")
     parser.add_argument("--plot", action="store_true", help="also show the live spectrogram")
     args = parser.parse_args()
 
@@ -75,10 +77,10 @@ def main():
     try:
         if args.plot:
             import spectrogram
-            spectrogram.main(on_frame)  # reads --threshold itself; returns when the window closes
+            spectrogram.main(on_frame)  # reads --threshold/--min-level itself; returns when the window closes
         else:
             mic = Microphone()
-            detector = PitchDetector(args.threshold)
+            detector = PitchDetector(args.threshold, args.min_level)
             try:
                 while True:
                     for samples in mic.read_available():

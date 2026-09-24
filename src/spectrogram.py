@@ -3,9 +3,10 @@
 Shows a scrolling spectrogram of the whistle band (F_MIN-F_MAX in config.py)
 and marks the loudest frequency in each frame that counts as a whistle. Use it
 to see what pitch you are whistling and to pick --threshold for the room.
+The status line shows the peak's absolute level, for picking --min-level.
 
   python src/spectrogram.py
-  python src/spectrogram.py --threshold 20
+  python src/spectrogram.py --threshold 20 --min-level 90
 
 Close the plot window or press Ctrl+C to quit.
 """
@@ -17,7 +18,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 from audio import Microphone, PitchDetector
-from config import CHUNK, F_MAX, F_MIN, RATE, WHISTLE_THRESHOLD_DB
+from config import CHUNK, F_MAX, F_MIN, MIN_LEVEL_DB, RATE, WHISTLE_THRESHOLD_DB
 
 HISTORY_SECONDS = 5  # width of the scrolling spectrogram
 
@@ -27,9 +28,11 @@ def main(on_frame=None):
     parser.add_argument("--threshold", type=float, default=WHISTLE_THRESHOLD_DB,
                         help=f"dB the peak must be above the band median to count as a whistle "
                              f"(default {WHISTLE_THRESHOLD_DB})")
+    parser.add_argument("--min-level", type=float, default=MIN_LEVEL_DB,
+                        help=f"absolute dB the peak must reach (default {MIN_LEVEL_DB}, 0 = off)")
     args = parser.parse_known_args()[0]  # ignore main.py's --plot
 
-    detector = PitchDetector(args.threshold)
+    detector = PitchDetector(args.threshold, args.min_level)
     n_frames = int(HISTORY_SECONDS * RATE / CHUNK)
     spec = np.zeros((len(detector.band_freqs), n_frames))  # dB above band median, newest column on the right
     peaks = np.full(n_frames, np.nan)  # peak frequency per frame, NaN = no whistle
@@ -61,7 +64,8 @@ def main(on_frame=None):
 
         image.set_data(spec)
         peak_line.set_ydata(peaks)
-        status.set_text("No whistle" if peak_freq is None else f"Whistle {peak_freq:.0f} Hz")
+        status.set_text(("No whistle" if peak_freq is None else f"Whistle {peak_freq:.0f} Hz")
+                        + f"   peak {db.max():.0f} dB")
         return image, peak_line, status
 
     anim = FuncAnimation(fig, update, interval=20, blit=True, cache_frame_data=False)  # must stay referenced or it stops

@@ -19,3 +19,4 @@ RATE = 44100
 CHUNK = 2048                # samples per frame: ~46 ms, ~21.5 Hz per FFT bin
 F_MIN, F_MAX = 1500, 2500   # whistle band (Hz)
 WHISTLE_THRESHOLD_DB = 35   # peak must be this far above the band median to count as a whistle
+MIN_LEVEL_DB = -30            # peak must also be at least this loud (absolute dB; depends on mic gain). 0 = off
