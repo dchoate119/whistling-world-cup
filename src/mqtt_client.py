@@ -36,7 +36,7 @@ class GameMQTT:
         self.client.disconnect()
 
     def publish(self, message):
-        self.client.publish(self.topic, message)
+        return self.client.publish(self.topic, message)
 
     def _handle_connect(self, client, userdata, flags, reason_code, properties):
         if reason_code.is_failure:

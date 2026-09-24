@@ -1,23 +1,26 @@
-"""Drive the robot by whistling.
+"""Drive the robot by whistling: one laptop whistles throttle, the other steering.
 
-  Whistle        -> drive forward at DRIVE, pitch steers:
-                    F_MIN full left, middle straight, F_MAX full right
-  No whistle     -> stop (after SILENCE_STOP_S, so short gaps don't twitch)
+  --role throttle  (connected to the robot) F_MIN full backward, middle stopped, F_MAX full forward
+  --role steer     pitch steers: F_MIN full left, middle straight, F_MAX full right,
+                   sent to the throttle laptop over MQTT on <ROBOT_TOPIC>/steer
+  No whistle     -> that input goes to 0 (after SILENCE_STOP_S, so short gaps don't twitch)
   Ctrl+C         -> stop and disconnect
 
-  python src/main.py
-  python src/main.py --threshold 30   # same flag as spectrogram.py
-  python src/main.py --plot           # also show the live spectrogram
+  python src/main.py --role throttle
+  python src/main.py --role steer
+  python src/main.py --role steer --threshold 30   # same flag as spectrogram.py
+  python src/main.py --role steer --plot           # also show the live spectrogram
 """
 
 import argparse
 import time
 
 from audio import Microphone, PitchDetector
-from config import F_MAX, F_MIN, WHISTLE_THRESHOLD_DB
+from config import F_MAX, F_MIN, ROBOT_TOPIC, WHISTLE_THRESHOLD_DB
+from mqtt_client import GameMQTT
 from robot import Robot
 
-DRIVE = 0.5            # forward speed while whistling, 0..1
+DEAD_ZONE = 0.1        # throttle: |drive| below this (±50 Hz around the middle) counts as stopped
 SILENCE_STOP_S = 0.3   # seconds of silence before stopping
 
 
@@ -28,24 +31,46 @@ def pitch_to_steer(freq):
     return max(-1.0, min(1.0, (freq - center) / half_range))
 
 
+def pitch_to_drive(freq):
+    """Same map as steer (F_MIN full back, F_MAX full forward), but 0 inside the dead zone."""
+    drive = pitch_to_steer(freq)
+    return drive if abs(drive) >= DEAD_ZONE else 0.0
+
+
 def main():
     parser = argparse.ArgumentParser(description="Drive the robot by whistling.")
+    parser.add_argument("--role", choices=["throttle", "steer"], required=True,
+                        help="throttle: this laptop drives the robot; steer: sends steer to it over MQTT")
     parser.add_argument("--threshold", type=float, default=WHISTLE_THRESHOLD_DB,
                         help=f"dB the peak must be above the band median to count as a whistle "
                              f"(default {WHISTLE_THRESHOLD_DB})")
     parser.add_argument("--plot", action="store_true", help="also show the live spectrogram")
     args = parser.parse_args()
 
-    robot = Robot()
+    steer = 0.0  # latest steer from MQTT (used by throttle)
+
+    def on_steer(message):
+        nonlocal steer
+        steer = float(message)
+
+    link = GameMQTT(topic=f"{ROBOT_TOPIC}/steer", on_message=on_steer)
+    link.connect()
+    robot = Robot() if args.role == "throttle" else None
     last_whistle = 0.0
+    value = sent = 0.0  # this laptop's drive or steer, and the last steer published
 
     def on_frame(freq):
-        nonlocal last_whistle
+        nonlocal last_whistle, value, sent
         if freq is not None:
             last_whistle = time.monotonic()
-            robot.move(DRIVE, pitch_to_steer(freq))
+            value = pitch_to_drive(freq) if robot else round(pitch_to_steer(freq), 1)
         elif time.monotonic() - last_whistle > SILENCE_STOP_S:
-            robot.stop()
+            value = 0.0
+        if robot:
+            robot.move(value, steer)
+        elif value != sent:
+            link.publish(str(value))
+            sent = value
 
     try:
         if args.plot:
@@ -63,7 +88,11 @@ def main():
     except KeyboardInterrupt:
         pass
     finally:
-        robot.close()
+        if robot:
+            robot.close()
+        else:
+            link.publish("0.0").wait_for_publish(1)  # don't leave the robot turning
+        link.disconnect()
 
 
 if __name__ == "__main__":
