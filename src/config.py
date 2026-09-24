@@ -7,6 +7,7 @@ BROKER_PORT = 1883
 
 # Topics
 GAME_TOPIC = "ME193/Rogers"  # game messages: start / FAILED / GOAL
+ROBOT_TOPIC = "Dan_Codrin_Robot"  # between our laptops: <base>/steer
 
 # Connection Card on our Double Motor
 CARD_COLOR = "yellow"
