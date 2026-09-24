@@ -10,18 +10,29 @@
 import numpy as np
 import pyaudio
 
-from config import CHUNK, F_MAX, F_MIN, RATE, WHISTLE_THRESHOLD_DB
+from config import CHUNK, MIC_NAME, F_MAX, F_MIN, RATE, WHISTLE_THRESHOLD_DB
 
 
 class Microphone:
     """Mono 16-bit mic stream, read in frames of CHUNK samples."""
 
-    def __init__(self, rate=RATE, chunk=CHUNK):
+    def __init__(self, rate=RATE, chunk=CHUNK, name=MIC_NAME):
         self.rate = rate
         self.chunk = chunk
         self._audio = pyaudio.PyAudio()
-        self._stream = self._audio.open(format=pyaudio.paInt16, channels=1, rate=rate,
-                                        input=True, frames_per_buffer=chunk)
+        self._stream = self._audio.open(format=pyaudio.paInt16, channels=1, rate=rate, input=True,
+                                        input_device_index=self._find_device(name), frames_per_buffer=chunk)
+
+    def _find_device(self, name):
+        """Index of the first input device whose name contains `name`, or None for the system default."""
+        if name:
+            for i in range(self._audio.get_device_count()):
+                info = self._audio.get_device_info_by_index(i)
+                if info["maxInputChannels"] > 0 and name.lower() in info["name"].lower():
+                    print(f"Using microphone: {info['name']}")
+                    return i
+            print(f"No microphone matching {name!r}, using the system default")
+        return None
 
     def read_available(self):
         """Yield every frame waiting in the buffer so callers never fall behind.

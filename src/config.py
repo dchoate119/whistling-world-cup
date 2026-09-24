@@ -13,7 +13,8 @@ CARD_COLOR = "yellow"
 CARD_SERIAL = "0994"  # string: keeps the leading zero
 
 # Audio
+MIC_NAME = "AB13X USB Audio" # use the first input device whose name contains this; None = system default
 RATE = 44100
 CHUNK = 2048                # samples per frame: ~46 ms, ~21.5 Hz per FFT bin
 F_MIN, F_MAX = 1500, 2500   # whistle band (Hz)
-WHISTLE_THRESHOLD_DB = 15   # peak must be this far above the band median to count as a whistle
+WHISTLE_THRESHOLD_DB = 35   # peak must be this far above the band median to count as a whistle

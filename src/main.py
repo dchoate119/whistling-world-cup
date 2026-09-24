@@ -6,12 +6,14 @@
   Ctrl+C         -> stop and disconnect
 
   python src/main.py
+  python src/main.py --threshold 30   # same flag as spectrogram.py
 """
 
+import argparse
 import time
 
 from audio import Microphone, PitchDetector
-from config import F_MAX, F_MIN
+from config import F_MAX, F_MIN, WHISTLE_THRESHOLD_DB
 from robot import Robot
 
 DRIVE = 0.5            # forward speed while whistling, 0..1
@@ -26,9 +28,15 @@ def pitch_to_steer(freq):
 
 
 def main():
+    parser = argparse.ArgumentParser(description="Drive the robot by whistling.")
+    parser.add_argument("--threshold", type=float, default=WHISTLE_THRESHOLD_DB,
+                        help=f"dB the peak must be above the band median to count as a whistle "
+                             f"(default {WHISTLE_THRESHOLD_DB})")
+    args = parser.parse_args()
+
     robot = Robot()
     mic = Microphone()
-    detector = PitchDetector()
+    detector = PitchDetector(args.threshold)
     last_whistle = 0.0
     try:
         while True:
