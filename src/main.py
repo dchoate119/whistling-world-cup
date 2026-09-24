@@ -1,6 +1,6 @@
 """Drive the robot by whistling: one laptop whistles throttle, the other steering.
 
-  --role throttle  (connected to the robot) pitch sets speed: F_MIN slow, F_MAX full
+  --role throttle  (connected to the robot) F_MIN full backward, middle stopped, F_MAX full forward
   --role steer     pitch steers: F_MIN full left, middle straight, F_MAX full right,
                    sent to the throttle laptop over MQTT on <ROBOT_TOPIC>/steer
   No whistle     -> that input goes to 0 (after SILENCE_STOP_S, so short gaps don't twitch)
@@ -20,7 +20,7 @@ from config import F_MAX, F_MIN, ROBOT_TOPIC, WHISTLE_THRESHOLD_DB
 from mqtt_client import GameMQTT
 from robot import Robot
 
-MIN_DRIVE = 0.2        # throttle speed at F_MIN, 0..1; F_MAX is full speed
+DEAD_ZONE = 0.1        # throttle: |drive| below this (±50 Hz around the middle) counts as stopped
 SILENCE_STOP_S = 0.3   # seconds of silence before stopping
 
 
@@ -32,8 +32,9 @@ def pitch_to_steer(freq):
 
 
 def pitch_to_drive(freq):
-    """Map F_MIN..F_MAX linearly to drive MIN_DRIVE..1."""
-    return MIN_DRIVE + (1 - MIN_DRIVE) * (pitch_to_steer(freq) + 1) / 2
+    """Same map as steer (F_MIN full back, F_MAX full forward), but 0 inside the dead zone."""
+    drive = pitch_to_steer(freq)
+    return drive if abs(drive) >= DEAD_ZONE else 0.0
 
 
 def main():

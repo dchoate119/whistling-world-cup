@@ -24,7 +24,7 @@ pip install -r requirements.txt
 
 ## Running (current)
 ```
-python src/main.py --role throttle   # laptop connected to the robot: pitch sets speed, silence stops
+python src/main.py --role throttle   # laptop connected to the robot: low backward, high forward, silence stops
 python src/main.py --role steer      # other laptop: pitch steers, sent over MQTT (Dan_Codrin_Robot/steer)
 python src/main.py --role steer --plot   # either role, plus the live spectrogram for troubleshooting
 python src/spectrogram.py      # live view of your whistle pitch, for tuning
