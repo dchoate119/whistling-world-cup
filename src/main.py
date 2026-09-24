@@ -7,6 +7,7 @@
 
   python src/main.py
   python src/main.py --threshold 30   # same flag as spectrogram.py
+  python src/main.py --plot           # also show the live spectrogram
 """
 
 import argparse
@@ -32,25 +33,36 @@ def main():
     parser.add_argument("--threshold", type=float, default=WHISTLE_THRESHOLD_DB,
                         help=f"dB the peak must be above the band median to count as a whistle "
                              f"(default {WHISTLE_THRESHOLD_DB})")
+    parser.add_argument("--plot", action="store_true", help="also show the live spectrogram")
     args = parser.parse_args()
 
     robot = Robot()
-    mic = Microphone()
-    detector = PitchDetector(args.threshold)
     last_whistle = 0.0
+
+    def on_frame(freq):
+        nonlocal last_whistle
+        if freq is not None:
+            last_whistle = time.monotonic()
+            robot.move(DRIVE, pitch_to_steer(freq))
+        elif time.monotonic() - last_whistle > SILENCE_STOP_S:
+            robot.stop()
+
     try:
-        while True:
-            for samples in mic.read_available():
-                _, freq = detector.analyze(samples)
-                if freq is not None:
-                    last_whistle = time.monotonic()
-                    robot.move(DRIVE, pitch_to_steer(freq))
-                elif time.monotonic() - last_whistle > SILENCE_STOP_S:
-                    robot.stop()
+        if args.plot:
+            import spectrogram
+            spectrogram.main(on_frame)  # reads --threshold itself; returns when the window closes
+        else:
+            mic = Microphone()
+            detector = PitchDetector(args.threshold)
+            try:
+                while True:
+                    for samples in mic.read_available():
+                        on_frame(detector.analyze(samples)[1])
+            finally:
+                mic.close()
     except KeyboardInterrupt:
         pass
     finally:
-        mic.close()
         robot.close()
 
 
