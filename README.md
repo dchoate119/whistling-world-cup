@@ -35,7 +35,7 @@ drive by whistling  (repeats ~20 times per second)
 BALL                                         GOALIE
  goal timer reaches 0.7 s (on_frame)          on_game() hears "FAILED" or "GOAL"
    → end(songs.WIN, "GOAL")                      → only saves it in `heard`
- color sensor close  (TODO, robot.py)          next on_frame() sees `heard`
+ robot.reflection() ≥ CAUGHT_REFLECTION        next on_frame() sees `heard`
    → end(songs.LOSE, "FAILED")                    → end(songs.WIN or songs.LOSE)
         ↓
 end()  (main.py)
@@ -79,7 +79,7 @@ All code is in `src/`. Files marked *planned* don't exist yet.
 ```
 config.py        # broker, topic, card color/serial, audio settings
 audio.py         # Microphone (mic stream) + PitchDetector (loudest whistle frequency)
-robot.py         # Robot: DoubleMotor drive/steer (ColorSensor planned)
+robot.py         # Robot: DoubleMotor drive/steer + IMU yaw, ColorSensor reflection (ball); run it to tune the sensor
 songs.py         # win/lose songs + play() on the motor's beeper
 mqtt_client.py   # GameMQTT: connect, subscribe, publish on ME193/Rogers
 main.py          # whistle → drive/steer, ball/goalie game loop
@@ -90,7 +90,7 @@ spectrogram.py   # tuning tool: live whistle spectrogram
 
 ### Hardware
 - [x] Connect to `DoubleMotor`
-- [ ] Connect to `ColorSensor`
+- [x] Connect to `ColorSensor`
 - [ ] Mount color sensor open and facing forward
 - [ ] Calibrate `reflection` threshold for goalie proximity
 
@@ -106,12 +106,12 @@ spectrogram.py   # tuning tool: live whistle spectrogram
 
 ### MQTT
 - [x] Subscribe to `ME193/Rogers`, wait for `start`
-- [ ] Publish `FAILED` (needs color sensor) / [x] `GOAL`
+- [x] Publish `FAILED` / `GOAL`
 - [x] React to opponent's messages
 
 ### Game logic
 - [x] Role selection (`ball` / `goalie`)
-- [ ] Ball: stop on proximity, publish `FAILED`, play death song
+- [x] Ball: stop on proximity, publish `FAILED`, play death song
 - [x] Ball: publish `GOAL` on goal command, play success song
 - [x] Goalie: play success song on `FAILED`, death song on `GOAL`
 - [x] Death and success songs (`beep` sequences)

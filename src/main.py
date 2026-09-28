@@ -20,7 +20,8 @@ import time
 
 from audio import Microphone, PitchDetector
 import songs
-from config import GOAL_F, MIN_LEVEL_DB, ROBOT_TOPIC, STEER_BAND, THROTTLE_BAND, WHISTLE_THRESHOLD_DB
+from config import (CAUGHT_REFLECTION, GOAL_F, MIN_LEVEL_DB, ROBOT_TOPIC, STEER_BAND, THROTTLE_BAND,
+                    WHISTLE_THRESHOLD_DB)
 from mqtt_client import GameMQTT
 from robot import Robot
 
@@ -68,7 +69,7 @@ def main():
 
     link = GameMQTT(topic=f"{ROBOT_TOPIC}/steer", on_message=on_steer)
     link.connect()
-    robot = Robot() if args.role == "throttle" else None
+    robot = Robot(sensor=args.game == "ball") if args.role == "throttle" else None
     last_whistle = 0.0
     goal_since = None   # when the current goal whistle began
     value = sent = 0.0  # this laptop's drive or steer, and the last steer published
@@ -120,7 +121,8 @@ def main():
                 end(songs.WIN if heard == "FAILED" else songs.LOSE)
             elif state == "playing" and args.game == "ball" and goal_since and now - goal_since >= GOAL_HOLD_S:
                 end(songs.WIN, "GOAL")
-            # TODO: ball caught -> end(songs.LOSE, "FAILED") once the color sensor is on
+            elif state == "playing" and args.game == "ball" and robot.reflection() >= CAUGHT_REFLECTION:
+                end(songs.LOSE, "FAILED")  # goalie caught us
             if turn and state == "playing":  # steer until the IMU says we've turned TURN_DEG
                 if turn_from is None:
                     turn_from = robot.yaw()

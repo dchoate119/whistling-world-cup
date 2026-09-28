@@ -9,9 +9,10 @@ BROKER_PORT = 1883
 GAME_TOPIC = "ME193/Rogers"  # game messages: start / FAILED / GOAL
 ROBOT_TOPIC = "Dan_Codrin_Robot"  # between our laptops: <base>/steer
 
-# Connection Card on our Double Motor
+# Connection Card on our Double Motor and Color Sensor (same card)
 CARD_COLOR = "yellow"
 CARD_SERIAL = "0994"  # string: keeps the leading zero
+CAUGHT_REFLECTION = 50  # ball: color sensor reflection % at or above this = goalie caught us; tune with python src/robot.py
 
 # Audio
 MIC_NAME = "AB13X USB Audio" # use the first input device whose name contains this; None = system default
