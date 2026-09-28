@@ -1,6 +1,6 @@
 """Live whistle spectrogram for tuning.
 
-Shows a scrolling spectrogram of the whistle band (F_MIN-F_MAX in config.py)
+Shows a scrolling spectrogram of the whistle band (F_MIN-DETECT_MAX in config.py)
 and marks the loudest frequency in each frame that counts as a whistle. Use it
 to see what pitch you are whistling and to pick --threshold for the room.
 The status line shows the peak's absolute level, for picking --min-level.
@@ -18,7 +18,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 from audio import Microphone, PitchDetector
-from config import CHUNK, F_MAX, F_MIN, MIN_LEVEL_DB, RATE, WHISTLE_THRESHOLD_DB
+from config import CHUNK, DETECT_MAX, F_MIN, MIN_LEVEL_DB, RATE, STEER_BAND, THROTTLE_BAND, WHISTLE_THRESHOLD_DB
 
 HISTORY_SECONDS = 5  # width of the scrolling spectrogram
 
@@ -38,11 +38,13 @@ def main(on_frame=None):
     peaks = np.full(n_frames, np.nan)  # peak frequency per frame, NaN = no whistle
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    image = ax.imshow(spec, origin="lower", aspect="auto", extent=(-HISTORY_SECONDS, 0, F_MIN, F_MAX),
+    image = ax.imshow(spec, origin="lower", aspect="auto", extent=(-HISTORY_SECONDS, 0, F_MIN, DETECT_MAX),
                       cmap="magma", vmin=0, vmax=45)
     (peak_line,) = ax.plot(np.linspace(-HISTORY_SECONDS, 0, n_frames), peaks, "c.", markersize=4)
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Frequency (Hz)")
+    band_lines = [ax.axhline(f, color=color, linestyle="--", linewidth=1)  # control band edges
+                  for band, color in ((THROTTLE_BAND, "white"), (STEER_BAND, "lime")) for f in band]
     fig.colorbar(image, ax=ax, label="dB above band median")
     # Status inside the axes: the title sits outside them, so updating it would defeat blitting
     status = ax.text(0.01, 0.97, "", transform=ax.transAxes, color="white", va="top")
@@ -66,7 +68,7 @@ def main(on_frame=None):
         peak_line.set_ydata(peaks)
         status.set_text(("No whistle" if peak_freq is None else f"Whistle {peak_freq:.0f} Hz")
                         + f"   peak {db.max():.0f} dB")
-        return image, peak_line, status
+        return image, *band_lines, peak_line, status  # redrawn every frame, in this order (lines over image)
 
     anim = FuncAnimation(fig, update, interval=20, blit=True, cache_frame_data=False)  # must stay referenced or it stops
     try:

@@ -58,6 +58,10 @@ class Robot:
     def stop(self):
         self.move(0.0, 0.0)
 
+    def yaw(self):
+        """Heading in degrees from the motor's IMU (the library refreshes it ~10x per second)."""
+        return self.motor.imu_device.yaw
+
     def close(self):
         if self.motor.connected:
             self.motor.movement_stop()

@@ -17,6 +17,9 @@ CARD_SERIAL = "0994"  # string: keeps the leading zero
 MIC_NAME = "AB13X USB Audio" # use the first input device whose name contains this; None = system default
 RATE = 44100
 CHUNK = 2048                # samples per frame: ~46 ms, ~21.5 Hz per FFT bin
-F_MIN, F_MAX = 1500, 2500   # whistle band (Hz)
+THROTTLE_BAND = (1500, 1900)  # throttle laptop: low = full backward, high = full forward
+STEER_BAND = (2100, 2400)     # steer laptop: lower half = 45° left turn, upper half = 45° right turn
+GOAL_F = 2500                 # throttle laptop: whistle at or above this = goal command (ball)
+F_MIN, DETECT_MAX = 1500, 3200  # detector listens from F_MIN up to DETECT_MAX
 WHISTLE_THRESHOLD_DB = 35   # peak must be this far above the band median to count as a whistle
-MIN_LEVEL_DB = -30            # peak must also be at least this loud (absolute dB; depends on mic gain). 0 = off
+MIN_LEVEL_DB = 110            # peak must also be at least this loud (absolute dB; depends on mic gain). 0 = off

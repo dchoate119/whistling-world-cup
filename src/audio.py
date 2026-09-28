@@ -10,7 +10,7 @@
 import numpy as np
 import pyaudio
 
-from config import CHUNK, MIC_NAME, F_MAX, F_MIN, MIN_LEVEL_DB, RATE, WHISTLE_THRESHOLD_DB
+from config import CHUNK, DETECT_MAX, MIC_NAME, F_MIN, MIN_LEVEL_DB, RATE, WHISTLE_THRESHOLD_DB
 
 
 class Microphone:
@@ -53,7 +53,7 @@ class Microphone:
 class PitchDetector:
     """Finds the loudest frequency in [f_min, f_max] and decides if it is a whistle."""
 
-    def __init__(self, threshold=WHISTLE_THRESHOLD_DB, min_level=MIN_LEVEL_DB, f_min=F_MIN, f_max=F_MAX,
+    def __init__(self, threshold=WHISTLE_THRESHOLD_DB, min_level=MIN_LEVEL_DB, f_min=F_MIN, f_max=DETECT_MAX,
                  rate=RATE, chunk=CHUNK):
         self.threshold = threshold  # dB the peak must be above the band median
         self.min_level = min_level  # dB the peak itself must reach: rejects distant whistles
