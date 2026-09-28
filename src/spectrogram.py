@@ -1,6 +1,6 @@
 """Live whistle spectrogram for tuning.
 
-Shows a scrolling spectrogram of the whistle band (F_MIN-F_MAX in config.py)
+Shows a scrolling spectrogram of the whistle band (F_MIN-DETECT_MAX in config.py)
 and marks the loudest frequency in each frame that counts as a whistle. Use it
 to see what pitch you are whistling and to pick --threshold for the room.
 The status line shows the peak's absolute level, for picking --min-level.
@@ -18,7 +18,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 from audio import Microphone, PitchDetector
-from config import CHUNK, F_MAX, F_MIN, MIN_LEVEL_DB, RATE, WHISTLE_THRESHOLD_DB
+from config import CHUNK, DETECT_MAX, F_MIN, MIN_LEVEL_DB, RATE, WHISTLE_THRESHOLD_DB
 
 HISTORY_SECONDS = 5  # width of the scrolling spectrogram
 
@@ -38,7 +38,7 @@ def main(on_frame=None):
     peaks = np.full(n_frames, np.nan)  # peak frequency per frame, NaN = no whistle
 
     fig, ax = plt.subplots(figsize=(10, 5))
-    image = ax.imshow(spec, origin="lower", aspect="auto", extent=(-HISTORY_SECONDS, 0, F_MIN, F_MAX),
+    image = ax.imshow(spec, origin="lower", aspect="auto", extent=(-HISTORY_SECONDS, 0, F_MIN, DETECT_MAX),
                       cmap="magma", vmin=0, vmax=45)
     (peak_line,) = ax.plot(np.linspace(-HISTORY_SECONDS, 0, n_frames), peaks, "c.", markersize=4)
     ax.set_xlabel("Time (s)")
