@@ -78,7 +78,8 @@ def main():
 
     def on_game(message):
         nonlocal state, heard
-        if message == "start":
+        message = message.upper()  # accept any capitalization from the other team
+        if message == "START":
             state, heard = "playing", None
             print("[game] start")
         elif args.game == "goalie" and message in ("FAILED", "GOAL"):
