@@ -18,7 +18,7 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 from audio import Microphone, PitchDetector
-from config import CHUNK, DETECT_MAX, F_MIN, MIN_LEVEL_DB, RATE, WHISTLE_THRESHOLD_DB
+from config import CHUNK, DETECT_MAX, F_MIN, MIN_LEVEL_DB, RATE, STEER_BAND, THROTTLE_BAND, WHISTLE_THRESHOLD_DB
 
 HISTORY_SECONDS = 5  # width of the scrolling spectrogram
 
@@ -43,6 +43,9 @@ def main(on_frame=None):
     (peak_line,) = ax.plot(np.linspace(-HISTORY_SECONDS, 0, n_frames), peaks, "c.", markersize=4)
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Frequency (Hz)")
+    for band, color in ((THROTTLE_BAND, "white"), (STEER_BAND, "lime")):  # control band edges
+        for f in band:
+            ax.axhline(f, color=color, linestyle="--", linewidth=1)
     fig.colorbar(image, ax=ax, label="dB above band median")
     # Status inside the axes: the title sits outside them, so updating it would defeat blitting
     status = ax.text(0.01, 0.97, "", transform=ax.transAxes, color="white", va="top")

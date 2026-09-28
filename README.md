@@ -25,8 +25,10 @@ drive by whistling  (repeats ~20 times per second)
    audio.py   Microphone      → one chunk of sound
    audio.py   PitchDetector   → loudest pitch, or None
    main.py    on_frame(freq):
-                1500–2500 Hz → drive speed (pitch_to_drive)
-                ≥ 2700 Hz    → stand still, start the goal timer
+                1500–1900 Hz → drive speed (pitch_to_drive)
+                ≥ 2500 Hz    → stand still, start the goal timer
+                (steer laptop: 2100–2400 Hz → one 45° turn per whistle, low half left, high half right;
+                 the robot steers until the IMU yaw has moved 45°, while still following the throttle)
                 silence      → stop
    robot.py   Robot.move(drive, steer)   → motors
         ↓
@@ -66,8 +68,8 @@ pip install -r requirements.txt
 ## Running (current)
 ```
 python src/main.py --role throttle --game ball     # laptop connected to the robot (or --game goalie)
-                                                   # low backward, high forward, silence stops, ≥2700 Hz held = goal
-python src/main.py --role steer      # other laptop: pitch steers, sent over MQTT (Dan_Codrin_Robot/steer)
+                                                   # low backward, high forward, silence stops, ≥2500 Hz held = goal
+python src/main.py --role steer      # other laptop: 2100–2400 Hz whistle = one 45° IMU turn (low left, high right), sent over MQTT
 python src/main.py --role steer --plot   # either role, plus the live spectrogram for troubleshooting
 python src/spectrogram.py      # live view of your whistle pitch, for tuning
 ```
@@ -96,7 +98,7 @@ spectrogram.py   # tuning tool: live whistle spectrogram
 - [x] Pitch detection
 - [x] First control scheme: whistle = forward + pitch steers, silence = stop
 - [ ] Test and tune on the floor (speed, steering, stop delay)
-- [x] Define special goal command (whistle ≥ 2700 Hz for 0.7 s)
+- [x] Define special goal command (whistle ≥ 2500 Hz for 0.7 s)
 - [x] Map pitch to motor commands
 
 ### Code structure
