@@ -6,6 +6,7 @@ to see what pitch you are whistling and to pick --threshold for the room.
 The status line shows the peak's absolute level, for picking --min-level.
 
   python src/spectrogram.py
+  python src/spectrogram.py --role throttle   # only that laptop's band and actions
   python src/spectrogram.py --threshold 20 --min-level 90
 
 Close the plot window or press Ctrl+C to quit.
@@ -18,9 +19,25 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 from audio import Microphone, PitchDetector
-from config import CHUNK, DETECT_MAX, F_MIN, MIN_LEVEL_DB, RATE, STEER_BAND, THROTTLE_BAND, WHISTLE_THRESHOLD_DB
+from config import (CHUNK, DETECT_MAX, F_MIN, GOAL_F, MIN_LEVEL_DB, RATE, STEER_BAND, THROTTLE_BAND,
+                    WHISTLE_THRESHOLD_DB)
 
 HISTORY_SECONDS = 5  # width of the scrolling spectrogram
+
+
+def action(freq, role=None):
+    """What a whistle at freq does, as main.py maps it; role None = either laptop. "" = nothing."""
+    if freq is None:
+        return ""
+    if STEER_BAND[0] <= freq <= STEER_BAND[1]:
+        if role == "throttle":
+            return ""  # the throttle laptop ignores the steer band
+        return "Left turn" if freq < sum(STEER_BAND) / 2 else "Right turn"
+    if role == "steer":
+        return ""  # the steer laptop only hears its own band
+    if freq >= GOAL_F:
+        return "Goal"
+    return "Forward" if freq > sum(THROTTLE_BAND) / 2 else "Backward"
 
 
 def main(on_frame=None):
@@ -30,6 +47,8 @@ def main(on_frame=None):
                              f"(default {WHISTLE_THRESHOLD_DB})")
     parser.add_argument("--min-level", type=float, default=MIN_LEVEL_DB,
                         help=f"absolute dB the peak must reach (default {MIN_LEVEL_DB}, 0 = off)")
+    parser.add_argument("--role", choices=["throttle", "steer"],
+                        help="only show that laptop's band and actions (main.py passes its own --role)")
     args = parser.parse_known_args()[0]  # ignore main.py's --plot
 
     detector = PitchDetector(args.threshold, args.min_level)
@@ -43,11 +62,16 @@ def main(on_frame=None):
     (peak_line,) = ax.plot(np.linspace(-HISTORY_SECONDS, 0, n_frames), peaks, "c.", markersize=4)
     ax.set_xlabel("Time (s)")
     ax.set_ylabel("Frequency (Hz)")
-    band_lines = [ax.axhline(f, color=color, linestyle="--", linewidth=1)  # control band edges
-                  for band, color in ((THROTTLE_BAND, "white"), (STEER_BAND, "lime")) for f in band]
+    bands = ((THROTTLE_BAND, "white", "throttle"), (STEER_BAND, "lime", "steer"))
+    band_lines = [ax.axhline(f, color=color, linestyle="--", linewidth=1)  # control band edges for this role
+                  for band, color, role in bands if args.role in (None, role) for f in band]
+    if args.role in (None, "throttle"):  # forward / backward split
+        band_lines.append(ax.axhline(sum(THROTTLE_BAND) / 2, color="white", linestyle=":", linewidth=1))
     fig.colorbar(image, ax=ax, label="dB above band median")
     # Status inside the axes: the title sits outside them, so updating it would defeat blitting
     status = ax.text(0.01, 0.97, "", transform=ax.transAxes, color="white", va="top")
+    label = ax.text(0.99, 0.97, "", transform=ax.transAxes, color="white", va="top", ha="right",
+                    fontsize=20, weight="bold")  # what the whistle is doing right now
 
     mic = Microphone()
 
@@ -68,7 +92,8 @@ def main(on_frame=None):
         peak_line.set_ydata(peaks)
         status.set_text(("No whistle" if peak_freq is None else f"Whistle {peak_freq:.0f} Hz")
                         + f"   peak {db.max():.0f} dB")
-        return image, *band_lines, peak_line, status  # redrawn every frame, in this order (lines over image)
+        label.set_text(action(peak_freq, args.role))
+        return image, *band_lines, peak_line, status, label  # redrawn every frame, in this order (lines over image)
 
     anim = FuncAnimation(fig, update, interval=20, blit=True, cache_frame_data=False)  # must stay referenced or it stops
     try:
