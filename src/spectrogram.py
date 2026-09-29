@@ -37,6 +37,8 @@ def action(freq, role=None):
         return ""  # the steer laptop only hears its own band
     if freq >= GOAL_F:
         return "Goal"
+    if not THROTTLE_BAND[0] <= freq <= THROTTLE_BAND[1]:
+        return ""  # between the bands: neither laptop reacts
     return "Forward" if freq > sum(THROTTLE_BAND) / 2 else "Backward"
 
 

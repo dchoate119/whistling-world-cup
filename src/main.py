@@ -1,6 +1,7 @@
 """Drive the robot by whistling: one laptop whistles throttle, the other steering.
 
   --role throttle  (connected to the robot) THROTTLE_BAND: low full backward, middle stopped, high full forward
+                   (pitches outside THROTTLE_BAND, other than the goal whistle, count as silence)
                    --game ball|goalie: waits for "start" on GAME_TOPIC, then plays that part
   --role steer     STEER_BAND: lower half = 45° left, upper half = 45° right (one turn per whistle,
                    measured by the motor's IMU, while still following the throttle),
@@ -102,9 +103,13 @@ def main():
     def on_frame(freq):
         nonlocal last_whistle, goal_since, value, sent, turn, turn_from
         now = time.monotonic()
-        # each laptop ignores the other laptop's band
-        in_steer_band = freq is not None and STEER_BAND[0] <= freq <= STEER_BAND[1]
-        if in_steer_band != (robot is None):
+        # each laptop only hears its own band (the throttle laptop also hears the goal whistle), so a
+        # stray pitch between the bands - e.g. a slightly flat or sharp steer whistle - doesn't drive
+        if robot:
+            mine = freq is not None and (THROTTLE_BAND[0] <= freq <= THROTTLE_BAND[1] or freq >= GOAL_F)
+        else:
+            mine = freq is not None and STEER_BAND[0] <= freq <= STEER_BAND[1]
+        if not mine:
             freq = None
         if freq is not None:
             last_whistle = now
