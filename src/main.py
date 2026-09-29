@@ -21,15 +21,13 @@ import time
 
 from audio import Microphone, PitchDetector
 import songs
-from config import (CAUGHT_REFLECTION, GOAL_F, MIN_LEVEL_DB, ROBOT_TOPIC, STEER_BAND, THROTTLE_BAND,
-                    WHISTLE_THRESHOLD_DB)
+from config import (CAUGHT_REFLECTION, DEAD_ZONE, GOAL_F, MIN_LEVEL_DB, ROBOT_TOPIC, STEER_BAND, THROTTLE_BAND,
+                    TURN_DEG, WHISTLE_THRESHOLD_DB)
 from mqtt_client import GameMQTT
 from robot import Robot
 
-DEAD_ZONE = 0.1        # throttle: |drive| below this (±20 Hz around the middle) counts as stopped
 SILENCE_STOP_S = 0.3   # seconds of silence before stopping
 GOAL_HOLD_S = 0.7      # ball: seconds of goal whistle before it counts
-TURN_DEG = 45          # degrees per turn, measured by the motor's IMU
 TURN_STEER = 0.5       # how hard to steer during a turn (1 = pivot on one wheel / fast spin)
 
 

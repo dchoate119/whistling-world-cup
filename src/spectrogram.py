@@ -19,8 +19,8 @@ import numpy as np
 from matplotlib.animation import FuncAnimation
 
 from audio import Microphone, PitchDetector
-from config import (CHUNK, DETECT_MAX, F_MIN, GOAL_F, MIN_LEVEL_DB, RATE, STEER_BAND, THROTTLE_BAND,
-                    WHISTLE_THRESHOLD_DB)
+from config import (CHUNK, DEAD_ZONE, DETECT_MAX, F_MIN, GOAL_F, MIN_LEVEL_DB, RATE, STEER_BAND, THROTTLE_BAND,
+                    TURN_DEG, WHISTLE_THRESHOLD_DB)
 
 HISTORY_SECONDS = 5  # width of the scrolling spectrogram
 
@@ -32,14 +32,17 @@ def action(freq, role=None):
     if STEER_BAND[0] <= freq <= STEER_BAND[1]:
         if role == "throttle":
             return ""  # the throttle laptop ignores the steer band
-        return "Left turn" if freq < sum(STEER_BAND) / 2 else "Right turn"
+        return f"{'Left' if freq < sum(STEER_BAND) / 2 else 'Right'} turn {TURN_DEG}°"
     if role == "steer":
         return ""  # the steer laptop only hears its own band
     if freq >= GOAL_F:
         return "Goal"
     if not THROTTLE_BAND[0] <= freq <= THROTTLE_BAND[1]:
         return ""  # between the bands: neither laptop reacts
-    return "Forward" if freq > sum(THROTTLE_BAND) / 2 else "Backward"
+    drive = (freq - sum(THROTTLE_BAND) / 2) / ((THROTTLE_BAND[1] - THROTTLE_BAND[0]) / 2)  # -1..1, like main.py
+    if abs(drive) < DEAD_ZONE:
+        return "Stop"  # main.py's dead zone
+    return f"{'Forward' if drive > 0 else 'Backward'} {abs(drive):.0%}"
 
 
 def main(on_frame=None):
@@ -69,6 +72,10 @@ def main(on_frame=None):
                   for band, color, role in bands if args.role in (None, role) for f in band]
     if args.role in (None, "throttle"):  # forward / backward split
         band_lines.append(ax.axhline(sum(THROTTLE_BAND) / 2, color="white", linestyle=":", linewidth=1))
+    if args.role in (None, "steer"):  # left / right split
+        band_lines.append(ax.axhline(sum(STEER_BAND) / 2, color="lime", linestyle=":", linewidth=1))
+    if args.role:  # which laptop this is, in big letters above the plot
+        ax.set_title({"throttle": "THROTTLE", "steer": "STEERING"}[args.role], fontsize=20, weight="bold")
     fig.colorbar(image, ax=ax, label="dB above band median")
     # Status inside the axes: the title sits outside them, so updating it would defeat blitting
     status = ax.text(0.01, 0.97, "", transform=ax.transAxes, color="white", va="top")
