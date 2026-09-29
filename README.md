@@ -76,6 +76,14 @@ python src/spectrogram.py      # live view of your whistle pitch, for tuning
 python src/spectrogram.py --role throttle   # only that laptop's band lines and action label
 ```
 
+Copy-paste (with live spectrogram):
+```
+python src/main.py --role throttle --game ball --plot     # throttle laptop, robot is the ball
+python src/main.py --role throttle --game goalie --plot   # throttle laptop, robot is the goalie
+python src/main.py --role steer --plot                    # steer laptop (same for ball or goalie)
+python src/mqtt_client.py                                 # MQTT test on ME193/Rogers: prints messages, type start / GOAL / FAILED to publish
+```
+
 ## File structure
 All code is in `src/`.
 ```
